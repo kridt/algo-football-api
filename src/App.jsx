@@ -7,16 +7,19 @@ function App() {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    fetch("/api-football/leagues", {
+    fetch("https://v3.football.api-sports.io/leagues", {
       method: "GET",
       headers: {
         "x-rapidapi-host": "v3.football.api-sports.io",
-        "x-rapidapi-key": import.meta.env.VITE_API_KEY, // 👈 korrekt i Vite
+        "x-rapidapi-key": process.env.VITE_API_KEY,
       },
     })
-      .then((res) => res.json())
-      .then((data) => console.log("Data:", data))
-      .catch((err) => console.error("Error:", err));
+      .then((response) => {
+        console.log(response);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
   }, []);
 
   return (
