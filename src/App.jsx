@@ -14,8 +14,9 @@ function App() {
         "x-rapidapi-key": process.env.VITE_API_KEY,
       },
     })
-      .then((response) => {
-        console.log(response.json());
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
       })
       .catch((err) => {
         console.log(err);
