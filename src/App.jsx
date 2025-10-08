@@ -1,17 +1,13 @@
 import { useEffect, useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
 import "./App.css";
 
 function App() {
   const [count, setCount] = useState(0);
-
+  const [leagues, setLeagues] = useState([]);
   const apiKey = import.meta.env.VITE_API_KEY;
 
   useEffect(() => {
-    console.log(apiKey);
-
-    fetch("https://v3.football.api-sports.io/leagues", {
+    fetch("https://v3.football.api-sports.io/leagues?season=2026", {
       method: "GET",
       headers: {
         "x-rapidapi-host": "v3.football.api-sports.io",
@@ -20,12 +16,13 @@ function App() {
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log(data);
+        setLeagues(data.response);
       })
       .catch((err) => {
         console.log(err);
       });
   }, []);
+  console.log(leagues);
 
   return (
     <>
