@@ -6,12 +6,16 @@ import "./App.css";
 function App() {
   const [count, setCount] = useState(0);
 
+  const apiKey = import.meta.env.VITE_API_KEY;
+
   useEffect(() => {
+    console.log(apiKey);
+
     fetch("https://v3.football.api-sports.io/leagues", {
       method: "GET",
       headers: {
         "x-rapidapi-host": "v3.football.api-sports.io",
-        "x-rapidapi-key": process.env.VITE_API_KEY,
+        "x-rapidapi-key": apiKey,
       },
     })
       .then((response) => response.json())
