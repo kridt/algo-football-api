@@ -3,6 +3,7 @@ import Navbar from "./components/Navbar.jsx";
 import Favorites from "./pages/Favorites.jsx";
 import Browse from "./pages/Browse.jsx";
 import Settings from "./pages/Settings.jsx";
+import FixtureDetails from "./pages/FixtureDetails.jsx";
 import "./App.css";
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/browse" element={<Browse />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/fixture/:fixtureId" element={<FixtureDetails />} />
           <Route path="*" element={<Navigate to="/favorites" replace />} />
         </Routes>
       </main>

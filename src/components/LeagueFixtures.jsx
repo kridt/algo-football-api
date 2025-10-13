@@ -1,22 +1,9 @@
 import { motion } from "framer-motion";
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
+import { Link } from "react-router-dom";
 import { useFixtures } from "../hooks/useFixtures.js";
-
-function fmtLocal(ts) {
-  try {
-    // API er i UTC – vis i brugerens lokale TZ:
-    return new Date(ts * 1000).toLocaleString(undefined, {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return "—";
-  }
-}
+import { formatLocalDateTimeFromUnix, fromNowUnix } from "../utils/time.js";
 
 export default function LeagueFixtures({ leagueId }) {
   const { fixtures, loading, error, stale } = useFixtures(leagueId);
@@ -46,7 +33,7 @@ export default function LeagueFixtures({ leagueId }) {
                     <Skeleton width={110} />
                   </div>
                 </div>
-                <Skeleton width={180} />
+                <Skeleton width={220} />
               </div>
             ))
           : fixtures.map((f) => {
@@ -54,52 +41,59 @@ export default function LeagueFixtures({ leagueId }) {
               const hm = f.teams?.home;
               const aw = f.teams?.away;
               const venue = fx?.venue;
-              const when = fmtLocal(fx?.timestamp);
+              const whenAbs = formatLocalDateTimeFromUnix(fx?.timestamp);
+              const whenRel = fromNowUnix(fx?.timestamp);
               const status = fx?.status?.short || "NS";
 
               return (
-                <motion.div
-                  className="fixture-row"
+                <Link
+                  to={`/fixture/${fx?.id}`}
+                  state={{ fromFav: true, seed: f }} // giver os teams/league uden ekstra kald
+                  className="fixture-link"
                   key={fx?.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 220,
-                    damping: 22,
-                    mass: 0.6,
-                  }}
                 >
-                  <div
-                    className={`fixture-status tag ${
-                      status === "NS" ? "tag-upcoming" : "tag-live"
-                    }`}
+                  <motion.div
+                    className="fixture-row"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 220,
+                      damping: 22,
+                      mass: 0.6,
+                    }}
                   >
-                    {status}
-                  </div>
-
-                  <div className="fixture-teams">
-                    <div className="fixture-team">
-                      <img className="team-logo" src={hm?.logo} alt="" />
-                      <span className="team-name">{hm?.name}</span>
+                    <div
+                      className={`fixture-status tag ${
+                        status === "NS" ? "tag-upcoming" : "tag-live"
+                      }`}
+                    >
+                      {status}
                     </div>
 
-                    <span className="fixture-vs">vs</span>
-
-                    <div className="fixture-team">
-                      <img className="team-logo" src={aw?.logo} alt="" />
-                      <span className="team-name">{aw?.name}</span>
+                    <div className="fixture-teams">
+                      <div className="fixture-team">
+                        <img className="team-logo" src={hm?.logo} alt="" />
+                        <span className="team-name">{hm?.name}</span>
+                      </div>
+                      <span className="fixture-vs">vs</span>
+                      <div className="fixture-team">
+                        <img className="team-logo" src={aw?.logo} alt="" />
+                        <span className="team-name">{aw?.name}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="fixture-meta">
-                    <div className="when">{when}</div>
-                    <div className="venue">
-                      {venue?.name}
-                      {venue?.city ? `, ${venue.city}` : ""}
+                    <div className="fixture-meta">
+                      <div className="when">
+                        {whenAbs} <span className="when-rel">• {whenRel}</span>
+                      </div>
+                      <div className="venue">
+                        {venue?.name}
+                        {venue?.city ? `, ${venue.city}` : ""}
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
+                  </motion.div>
+                </Link>
               );
             })}
       </div>
