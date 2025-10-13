@@ -6,6 +6,7 @@ import { useFixtureHeader } from "../hooks/useFixtureHeader.js";
 import { useFixtureStatistics } from "../hooks/useFixtureStatistics.js";
 import { useTeamStatistics } from "../hooks/useTeamStatistics.js";
 import { formatLocalDateTimeFromUnix, fromNowUnix } from "../utils/time.js";
+import H2HStats from "../components/H2HStats.jsx";
 
 function toNum(v) {
   if (v === null || v === undefined) return null;
@@ -174,6 +175,14 @@ export default function FixtureDetails() {
       {/* STATS COMPARE */}
       <div className="panel" style={{ marginTop: 16 }}>
         <h3 className="panel-title">Kamp-statistik</h3>
+        <H2HStats
+          leagueId={leagueId}
+          homeId={home?.id}
+          awayId={away?.id}
+          homeName={home?.name}
+          awayName={away?.name}
+        />
+
         {statsLoad && (
           <div style={{ display: "grid", gap: 10 }}>
             {Array.from({ length: 10 }).map((_, i) => (
