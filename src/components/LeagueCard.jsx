@@ -1,21 +1,51 @@
-import { isFavorite, toggleFavorite } from "../utils/storage.js";
+import { motion } from "framer-motion";
 
-export default function LeagueCard({ item, onToggle }) {
+export default function LeagueCard({
+  item,
+  isFav,
+  onToggle,
+  animate = true,
+  hideFlag = false,
+  compact = false,
+}) {
   const league = item?.league;
   const country = item?.country;
   const season = Array.isArray(item?.seasons) ? item.seasons[0] : null;
 
   const id = league?.id;
-  const fav = isFavorite(id);
+  const fav = isFav?.(id);
 
   const start = season?.start
     ? new Date(season.start).toLocaleDateString()
     : "—";
   const end = season?.end ? new Date(season.end).toLocaleDateString() : "—";
 
+  const Card = animate ? motion.div : "div";
+
   return (
-    <div className="card">
-      <img className="flag" src={country?.flag} alt={`${country?.name} flag`} />
+    <Card
+      className={`card ${compact ? "card-compact" : ""}`}
+      {...(animate
+        ? {
+            initial: { opacity: 0, y: 6, scale: 0.98 },
+            animate: { opacity: 1, y: 0, scale: 1 },
+            transition: {
+              type: "spring",
+              stiffness: 220,
+              damping: 22,
+              mass: 0.6,
+            },
+            whileHover: { y: -2 },
+          }
+        : {})}
+    >
+      {!hideFlag && (
+        <img
+          className="flag"
+          src={country?.flag}
+          alt={`${country?.name} flag`}
+        />
+      )}
       <div className="meta">
         <div className="titleline">
           <img className="league-logo" src={league?.logo} alt="logo" />
@@ -36,10 +66,7 @@ export default function LeagueCard({ item, onToggle }) {
         <div className="actions">
           <button
             className={`iconbtn fav ${fav ? "active" : ""}`}
-            onClick={() => {
-              const arr = toggleFavorite(id);
-              onToggle?.(id, arr);
-            }}
+            onClick={() => onToggle?.(item)}
             title={fav ? "Fjern fra favoritter" : "Tilføj til favoritter"}
           >
             {fav ? "★ Favorit" : "☆ Favorit"}
@@ -54,6 +81,6 @@ export default function LeagueCard({ item, onToggle }) {
           </a>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

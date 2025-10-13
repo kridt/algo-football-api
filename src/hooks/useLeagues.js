@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 
-/**
- * Henter leagues for sæson 2025 (samme kald som i dit eksempel).
- */
+const LIST_KEY = "cache_leagues_2025_v1";
+
 export function useLeagues() {
-  const [leagues, setLeagues] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [leagues, setLeagues] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(LIST_KEY) || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(leagues.length === 0); // skeleton kun hvis intet i cache
   const [error, setError] = useState("");
   const apiKey = import.meta.env.VITE_API_KEY;
 
@@ -26,6 +31,7 @@ export function useLeagues() {
           setError("Uventet API-svar.");
         } else {
           setLeagues(data.response);
+          localStorage.setItem(LIST_KEY, JSON.stringify(data.response));
         }
       })
       .catch((e) => setError(e?.message ?? "Ukendt fejl"))

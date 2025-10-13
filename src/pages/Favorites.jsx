@@ -1,27 +1,26 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useLeagues } from "../hooks/useLeagues.js";
+import { useFavorites } from "../hooks/useFavorites.js";
 import LeagueCard from "../components/LeagueCard.jsx";
-import { getFavoriteIds } from "../utils/storage.js";
+import LeagueFixtures from "../components/LeagueFixtures.jsx";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
 export default function Favorites() {
   const { leagues, loading, error } = useLeagues();
-  const [version, setVersion] = useState(0); // trigger re-render når fav toggles
+  const { ids, entities, isFav, toggle } = useFavorites();
 
-  // kun leagues der er i favorites
-  const favSet = useMemo(() => new Set(getFavoriteIds()), [version]);
-  const favLeagues = useMemo(
-    () => leagues.filter((x) => favSet.has(x?.league?.id)),
-    [leagues, favSet]
-  );
+  const cachedList = useMemo(() => {
+    return ids.map((id) => entities[id]).filter(Boolean);
+  }, [ids, entities]);
 
-  // force update hvis storage ændres andre steder
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === "fav_league_ids_v1") setVersion((v) => v + 1);
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  const freshList = useMemo(() => {
+    if (!leagues?.length) return cachedList;
+    const byId = new Map(leagues.map((x) => [x?.league?.id, x]));
+    return ids.map((id) => byId.get(id) || entities[id]).filter(Boolean);
+  }, [leagues, ids, entities, cachedList]);
+
+  const showing = freshList.length ? freshList : cachedList;
 
   return (
     <section>
@@ -29,7 +28,7 @@ export default function Favorites() {
         <div>
           <div className="page-title">Dine favoritter</div>
           <div className="page-sub">
-            Forsiden viser kun leagues du har markeret ★ på.
+            Viser også næste 10 kampe for hver liga.
           </div>
         </div>
         <div className="controls">
@@ -39,20 +38,31 @@ export default function Favorites() {
         </div>
       </div>
 
-      {loading && <p>Loader…</p>}
       {error && <p style={{ color: "#ff7b7b" }}>Fejl: {error}</p>}
 
       <div className="grid">
-        {favLeagues.map((item) => (
-          <LeagueCard
-            key={item?.league?.id}
-            item={item}
-            onToggle={() => setVersion((v) => v + 1)}
-          />
-        ))}
+        {loading && showing.length === 0
+          ? Array.from({ length: 3 }).map((_, i) => (
+              <div className="card" key={`skf-${i}`}>
+                <Skeleton height={38} width={58} style={{ borderRadius: 8 }} />
+                <div className="meta">
+                  <div className="titleline">
+                    <Skeleton circle height={18} width={18} />
+                    <Skeleton width={180} />
+                  </div>
+                  <Skeleton width={140} />
+                </div>
+              </div>
+            ))
+          : showing.map((item) => (
+              <div key={item?.league?.id} className="fav-block">
+                <LeagueCard item={item} isFav={isFav} onToggle={toggle} />
+                <LeagueFixtures leagueId={item?.league?.id} />
+              </div>
+            ))}
       </div>
 
-      {!loading && favLeagues.length === 0 && (
+      {!loading && showing.length === 0 && (
         <p className="page-sub" style={{ marginTop: 16 }}>
           Ingen favoritter endnu. Gå til <a href="/browse">Browse</a> og tryk ☆.
         </p>

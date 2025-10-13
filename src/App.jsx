@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 import Favorites from "./pages/Favorites.jsx";
 import Browse from "./pages/Browse.jsx";
+import Settings from "./pages/Settings.jsx";
 import "./App.css";
 
 export default function App() {
@@ -12,11 +13,10 @@ export default function App() {
       <Navbar activePath={pathname} />
       <main className="container">
         <Routes>
-          {/* Forsiden er Favorites */}
           <Route path="/" element={<Navigate to="/favorites" replace />} />
           <Route path="/favorites" element={<Favorites />} />
           <Route path="/browse" element={<Browse />} />
-          {/* Fallback */}
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/favorites" replace />} />
         </Routes>
       </main>

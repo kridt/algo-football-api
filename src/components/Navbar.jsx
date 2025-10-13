@@ -18,6 +18,12 @@ export default function Navbar({ activePath }) {
           >
             Browse
           </Link>
+          <Link
+            to="/settings"
+            className={`navlink ${activePath === "/settings" ? "active" : ""}`}
+          >
+            Settings
+          </Link>
         </div>
       </div>
     </nav>

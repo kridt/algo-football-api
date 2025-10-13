@@ -1,27 +1,39 @@
-const KEY = "fav_league_ids_v1";
+const IDS_KEY = "fav_league_ids_v1";
+const ENT_KEY = "fav_league_entities_v1"; // id -> full item
 
 export function getFavoriteIds() {
   try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? JSON.parse(raw) : [];
+    return JSON.parse(localStorage.getItem(IDS_KEY) || "[]");
   } catch {
     return [];
   }
 }
 
 export function setFavoriteIds(ids) {
-  localStorage.setItem(KEY, JSON.stringify(ids));
+  localStorage.setItem(IDS_KEY, JSON.stringify(ids));
 }
 
-export function toggleFavorite(id) {
-  const ids = new Set(getFavoriteIds());
-  if (ids.has(id)) ids.delete(id);
-  else ids.add(id);
-  const arr = Array.from(ids);
-  setFavoriteIds(arr);
-  return arr;
+export function getFavoriteEntitiesMap() {
+  try {
+    return JSON.parse(localStorage.getItem(ENT_KEY) || "{}");
+  } catch {
+    return {};
+  }
 }
 
-export function isFavorite(id) {
-  return getFavoriteIds().includes(id);
+export function setFavoriteEntitiesMap(map) {
+  localStorage.setItem(ENT_KEY, JSON.stringify(map));
+}
+
+export function upsertFavoriteEntity(item) {
+  if (!item?.league?.id) return;
+  const map = getFavoriteEntitiesMap();
+  map[item.league.id] = item;
+  setFavoriteEntitiesMap(map);
+}
+
+export function removeFavoriteEntity(id) {
+  const map = getFavoriteEntitiesMap();
+  delete map[id];
+  setFavoriteEntitiesMap(map);
 }
