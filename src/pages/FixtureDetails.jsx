@@ -7,6 +7,7 @@ import { useFixtureStatistics } from "../hooks/useFixtureStatistics.js";
 import { useTeamStatistics } from "../hooks/useTeamStatistics.js";
 import { formatLocalDateTimeFromUnix, fromNowUnix } from "../utils/time.js";
 import H2HStats from "../components/H2HStats.jsx";
+import { useSheetRow } from "../hooks/useSheetRow.js";
 
 function toNum(v) {
   if (v === null || v === undefined) return null;
@@ -23,7 +24,7 @@ function toNum(v) {
 export default function FixtureDetails() {
   const { fixtureId } = useParams();
   const { state } = useLocation();
-  const seed = state?.seed; // fixture fra favorites (valgfrit)
+  const seed = state?.seed;
 
   const {
     data: header,
@@ -42,16 +43,28 @@ export default function FixtureDetails() {
   const away = header?.teams?.away ?? seed?.teams?.away;
   const fx = header?.fixture ?? seed?.fixture;
 
+  // Google Sheets lookup på begge hold
+  const {
+    row: homeRow,
+    loading: homeRowLoad,
+    error: homeRowErr,
+  } = useSheetRow(home?.id);
+  const {
+    row: awayRow,
+    loading: awayRowLoad,
+    error: awayRowErr,
+  } = useSheetRow(away?.id);
+
+  console.log("homeId:", home?.id, "awayId:", away?.id);
+
   const homeStatsRaw =
     stats.find((s) => s.team?.id === home?.id)?.statistics || [];
   const awayStatsRaw =
     stats.find((s) => s.team?.id === away?.id)?.statistics || [];
 
-  // Map type -> value for begge
   const hMap = new Map(homeStatsRaw.map((x) => [x.type, x.value]));
   const aMap = new Map(awayStatsRaw.map((x) => [x.type, x.value]));
 
-  // Fælles nøgler i en pæn rækkefølge
   const order = [
     "Ball Possession",
     "Total Shots",
@@ -172,6 +185,36 @@ export default function FixtureDetails() {
         />
       </div>
 
+      {/* SHEETS: Teamprofiler fra Google Sheets, forbedret layout */}
+      <div className="panel" style={{ marginTop: 16 }}>
+        <h3 className="panel-title">Teamprofiler (Sheets)</h3>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 16,
+          }}
+        >
+          <TeamProfileCard
+            title="Hjemme"
+            teamLogo={home?.logo}
+            teamName={home?.name}
+            row={homeRow}
+            loading={homeRowLoad}
+            error={homeRowErr}
+          />
+          <TeamProfileCard
+            title="Ude"
+            teamLogo={away?.logo}
+            teamName={away?.name}
+            row={awayRow}
+            loading={awayRowLoad}
+            error={awayRowErr}
+          />
+        </div>
+      </div>
+
       {/* STATS COMPARE */}
       <div className="panel" style={{ marginTop: 16 }}>
         <h3 className="panel-title">Kamp-statistik</h3>
@@ -204,17 +247,14 @@ export default function FixtureDetails() {
               const av = aMap.get(k);
               if (hv === undefined && av === undefined) return null;
 
-              // normaliser tal hvis muligt
               const hn = toNum(hv);
               const an = toNum(av);
               let left = hv ?? "—";
               let right = av ?? "—";
 
-              // bar width
-              const hasNumbers = hn !== null && an !== null;
               let lw = 50,
                 rw = 50;
-              if (hasNumbers) {
+              if (hn !== null && an !== null) {
                 const sum = hn + an || 1;
                 lw = Math.round((hn / sum) * 100);
                 rw = 100 - lw;
@@ -253,6 +293,8 @@ export default function FixtureDetails() {
   );
 }
 
+/* ---------- UI subcomponents ---------- */
+
 function TeamInfoCard({ title, team, data, loading }) {
   const logo = team?.logo;
   const name = team?.name;
@@ -268,14 +310,13 @@ function TeamInfoCard({ title, team, data, loading }) {
   const avgFor = data?.goals?.for?.average || {};
   const avgAg = data?.goals?.against?.average || {};
 
-  // helper til pæn visning (string->tal eller "—")
   const asNum = (v) => {
     if (v === null || v === undefined) return "—";
     const n = typeof v === "string" ? parseFloat(v) : v;
     return Number.isFinite(n) ? n.toFixed(1) : "—";
   };
 
-  const formStr = (data?.form || "").trim().toUpperCase(); // fx "LDWLWLW"
+  const formStr = (data?.form || "").trim().toUpperCase();
   const formArr = formStr.split("").filter((c) => ["W", "D", "L"].includes(c));
 
   return (
@@ -382,6 +423,119 @@ function TeamInfoCard({ title, team, data, loading }) {
               </span>
             ))}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * TeamProfileCard – viser data fra Google Sheets (én klub)
+ * - Tydelige chips for "minder om"
+ * - Badges for ID / Liga / Land
+ */
+function TeamProfileCard({ title, teamLogo, teamName, row, loading, error }) {
+  const badge = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "6px 10px",
+    borderRadius: 12,
+    fontSize: 12,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.08)",
+  };
+  const chip = {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "6px 10px",
+    borderRadius: 999,
+    fontSize: 12,
+    background:
+      "linear-gradient(180deg, rgba(56,189,248,0.22), rgba(56,189,248,0.06))",
+    border: "1px solid rgba(56,189,248,0.35)",
+    boxShadow: "0 0 12px rgba(56,189,248,0.25)",
+    whiteSpace: "nowrap",
+  };
+
+  return (
+    <div className="panel">
+      <div className="teaminfo-head">
+        {teamLogo ? (
+          <img src={teamLogo} className="teaminfo-logo" alt="" />
+        ) : (
+          <Skeleton circle width={32} height={32} />
+        )}
+        <div className="teaminfo-title">{title}</div>
+        <div className="teaminfo-name">
+          {teamName ?? <Skeleton width={140} />}
+        </div>
+      </div>
+
+      {error && (
+        <p style={{ color: "#ff7b7b", marginTop: 8 }}>
+          Fejl ved Sheets-lookup: {String(error.message || error)}
+        </p>
+      )}
+
+      {loading && !error && (
+        <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+          <Skeleton width={220} />
+          <Skeleton width={260} />
+          <Skeleton width={180} />
+          <Skeleton width={300} />
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div className="teaminfo-body" style={{ display: "grid", gap: 12 }}>
+          {!row ? (
+            <div className="page-sub">Ingen sheets-data.</div>
+          ) : (
+            <>
+              {/* Overskrift + badges */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: 16 }}>
+                  {row.holdnavn ?? teamName ?? "—"}
+                </div>
+                <span style={badge}>ID: {row.id ?? "—"}</span>
+                <span style={badge}>{row.liga ?? "—"}</span>
+                <span style={badge}>{row.land ?? "—"}</span>
+              </div>
+
+              {/* Minder om – tydelige chips */}
+              <div className="ti-section-title">Minder om</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {(row.minder_om ?? []).length === 0 && (
+                  <span className="page-sub">—</span>
+                )}
+                {(row.minder_om ?? []).map((name, i) => (
+                  <span key={i} style={chip} title={`Ligner ${name}`}>
+                    ⚽ {name}
+                  </span>
+                ))}
+              </div>
+
+              {/* Spillestile */}
+              <div className="ti-section-title">Spillestile</div>
+              <div className="page-sub">{row.spillestile ?? "—"}</div>
+
+              {/* Rå JSON til debug (foldbar) */}
+              <details style={{ marginTop: 4 }}>
+                <summary>Vis rå JSON</summary>
+                <pre style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>
+                  {JSON.stringify(row, null, 2)}
+                </pre>
+              </details>
+            </>
+          )}
         </div>
       )}
     </div>
